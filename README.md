@@ -18,9 +18,9 @@ the current flight.
 ## Verification
 
 ```sh
-npm ci --prefix apps/system/drone-circuit --ignore-scripts
-npm run typecheck --prefix apps/system/drone-circuit
-npm test --prefix apps/system/drone-circuit
+npm ci --prefix apps/games/03-babylon-xr-games/drone-circuit --ignore-scripts
+npm run typecheck --prefix apps/games/03-babylon-xr-games/drone-circuit
+npm test --prefix apps/games/03-babylon-xr-games/drone-circuit
 node tests/drone-circuit-browser.test.mjs
 CODI_PHONE=1 node tests/drone-circuit-browser.test.mjs
 node tests/drone-circuit-account.test.mjs
