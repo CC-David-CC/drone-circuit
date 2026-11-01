@@ -1,47 +1,38 @@
-# Drone Circuit
+# Drone Circuit — desktop integration
 
-**Single-player 3D time trial · Babylon.js · single-player · phone required · immersive XR required**
+Drone Circuit is a Babylon.js 3D time-trial preview using the completed
+deterministic flight model. Three courses contain ordered gates and simple
+collision obstacles. Forward/back, strafe and altitude inputs drive one
+fixed-step model; gates score only in sequence and in the forward direction.
 
-> Planned design, not implemented or browser-tested. `index.pseudo.mjs` is an explanatory entry point, not a playable game.
+Each window owns its Babylon engine, scene, keyboard/pointer listeners, audio
+context and file subscription. The app pauses on focus loss, supports a stable
+trackside camera and an optional chase camera, and disposes idempotently.
 
-## Experience
+Save and Open use the signed-in desktop's My files context. Flight pose,
+velocity, ticks, penalties, best-run ghost samples and RNG state are validated
+before replacing the live flight. Loading and file-route launches restore
+paused; changed or conflicting saved files remain visible without replacing
+the current flight.
 
-Pilot a tiny drone through ordered gates while viewing it from a stable trackside position or desktop chase camera.
+## Verification
 
-## What this demonstrates
+```sh
+npm ci --prefix apps/system/drone-circuit --ignore-scripts
+npm run typecheck --prefix apps/system/drone-circuit
+npm test --prefix apps/system/drone-circuit
+node tests/drone-circuit-browser.test.mjs
+CODI_PHONE=1 node tests/drone-circuit-browser.test.mjs
+node tests/drone-circuit-account.test.mjs
+```
 
-- 3D camera rigs and interpolated motion
-- Gate geometry and replay
-- Spatial audio and animated telemetry
+## Remaining gates
 
-## Rules and complete loop
+- No authored `drone-telemetry.riv` is supplied. The telemetry card is a
+  clearly labeled development fallback.
+- The entered-XR flow, trackside pedestal controls, world-space Rive panel and
+  Galaxy XR hardware evidence remain unimplemented or unrun.
+- Physical-phone testing, a full three-course medal run and performance/thermal
+  evidence remain open.
 
-- Bounded arcade flight controls; no aerodynamic claim. Gates must be crossed in sequence and correct direction.
-- A reset returns to the last valid gate with a time penalty. Best-run ghost is non-colliding recorded presentation.
-- XR baseline is trackside remote piloting; a camera strapped to the moving drone is not required.
-
-## Bounded polished release
-
-Three compact courses, training mode and bronze/silver/gold targets.
-
-- Large distant gate silhouettes
-- Ghost reduced opacity with opt-out
-- Stable XR horizon and selectable spectator positions
-
-No multiplayer, accounts, server simulation or generic editor is required. Start, rules/help, play/activity, pause, outcome/goal feedback and retry must all be complete. Settings include volume/mute, reduced motion, contrast and game-specific options where meaningful. State changes occur in the game model; animations illustrate them.
-
-## Rive inside this app
-
-Telemetry card and animated mechanic, as a spatial panel in XR. The requested asset is `drone-telemetry.riv`; it is **not included**. See [RIVE.md](RIVE.md) for the authoring/integration contract. A placeholder or unrelated animated logo does not satisfy this requirement.
-
-## Save behavior
-
-Exact logical flight state; loading resumes paused at saved pose. Persistent ghosts capped by duration/sample count. See [SAVE.md](SAVE.md). Loading starts paused; resume is explicit. Entering/exiting XR preserves the live current state even when exported saves are checkpoints.
-
-## Build sequence
-
-Implement the rule loop in [gameplay.pseudo.txt](gameplay.pseudo.txt); bind the exact app lifecycle from [index.pseudo.mjs](index.pseudo.mjs); complete [CONTROLS.md](CONTROLS.md); author/integrate [RIVE.md](RIVE.md); then satisfy [ACCEPTANCE.md](ACCEPTANCE.md). The full XR flow and game-specific presentation are in [XR.md](XR.md).
-
-Target wave: **2**. Integrator first reads [AGENTS.md](../../AGENTS.md); do not guess host APIs from symbolic helper names.
-
-Use original/licensed artwork and audio. Keep the scope small enough to polish; expand content only after the release gates pass.
+Engine version is pinned in `package-lock.json`: `@babylonjs/core` 9.33.1.
