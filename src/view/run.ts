@@ -113,22 +113,22 @@ export async function startView(host:Host,signal:AbortSignal):Promise<ViewHandle
  const mark=()=>{revision++;setDirty(true)};
 
  function toggleRun():void{
-  if(!valid())return;
-  paused=!paused;previous=performance.now();
+  if(busy||!valid())return;
+  paused=!paused;if(paused)clearControls();previous=performance.now();
   if(!paused&&sound.checked)audio.unlock();
   run.textContent=paused?'Run':'Pause';run.setAttribute('aria-label',run.textContent);
   announce(paused?'Flight paused. Current pose and ghost trace retained.':'Flight active. Fly through the gates in order.');
  }
  function resetDrone():void{
-  if(!valid())return;
-  session.reset();mark();lastGate=session.gateIndex;announce('Drone reset to the last gate. Five-second penalty applied.');audio.tone(150,120);
+  if(busy||!valid())return;
+  clearControls();session.reset();mark();lastGate=session.gateIndex;announce('Drone reset to the last gate. Five-second penalty applied.');audio.tone(150,120);
  }
  function toggleCamera():void{
   chase=!chase;view.textContent='Camera: '+(chase?'chase':'trackside');view.setAttribute('aria-label',view.textContent);
   if(scene&&camera){camera.alpha=chase?-Math.PI/2:-Math.PI/2;camera.beta=chase?1.18:1.4;camera.radius=chase?9:52}
  }
  async function newCourse(id:number):Promise<void>{
-  if(busy||!valid())return;const prior=session,atRevision=revision,before=encodeSave(session);busy=true;
+  if(busy||!valid())return;const prior=session,atRevision=revision,before=encodeSave(session);busy=true;clearControls();
   try{
    if(dirty&&!await host.ui.confirm?.('Change course and discard current flight?',{title:'Unsaved flight',confirmLabel:'Change course',cancelLabel:'Keep flight',danger:true,signal})){course.value=''+session.courseId;return}
    if(!valid()||session!==prior||revision!==atRevision||encodeSave(session)!==before)throw Error('The flight changed while confirming. Try again.');
@@ -138,30 +138,38 @@ export async function startView(host:Host,signal:AbortSignal):Promise<ViewHandle
  }
  course.addEventListener('change',()=>void newCourse(Number(course.value)));
 
- const held=new Map<number,{axis:'x'|'y'|'z';value:number}>();
- function setThrottle(axis:'x'|'y'|'z',value:number):void{
-  session.setThrottle(axis,value);
+ const held=new Map<number,{axis:'x'|'y'|'z';value:number}>(),keys=new Set<string>();
+ const pulses=new Map<string,{axis:'x'|'y'|'z';value:number;timer:ReturnType<typeof setTimeout>}>();
+ function syncControls():void{
+  const count=(axis:'x'|'y'|'z',positive:string,negative:string)=>{
+   let n=Number(keys.has(positive))-Number(keys.has(negative));
+   for(const input of held.values())if(input.axis===axis)n+=input.value;
+   for(const input of pulses.values())if(input.axis===axis)n+=input.value;
+   session.setThrottle(axis,Math.max(-1,Math.min(1,n)));
+  };
+  count('x','w','s');count('y','arrowup','arrowdown');count('z','d','a');
  }
+ function clearControls():void{keys.clear();held.clear();for(const pulse of pulses.values())clearTimeout(pulse.timer);pulses.clear();syncControls()}
  function bindHold(button:HTMLButtonElement,axis:'x'|'y'|'z',value:number):void{
-  button.addEventListener('pointerdown',event=>{event.preventDefault();button.setPointerCapture(event.pointerId);held.set(event.pointerId,{axis,value});setThrottle(axis,value)});
-  const release=(event:PointerEvent)=>{if(!held.has(event.pointerId))return;held.delete(event.pointerId);setThrottle(axis,0);if(button.hasPointerCapture(event.pointerId))button.releasePointerCapture(event.pointerId)};
+  const pulseKey=axis+':'+value;
+  button.addEventListener('pointerdown',event=>{if(event.button!==0||busy||paused||!valid())return;event.preventDefault();button.setPointerCapture(event.pointerId);held.set(event.pointerId,{axis,value});syncControls()});
+  const release=(event:PointerEvent)=>{if(!held.delete(event.pointerId))return;syncControls();if(button.hasPointerCapture(event.pointerId))button.releasePointerCapture(event.pointerId)};
   for(const type of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(type,release as EventListener);
-  button.addEventListener('click',()=>{setThrottle(axis,value);setTimeout(()=>setThrottle(axis,0),140)});
+  button.addEventListener('click',event=>{if(event.detail!==0||busy||paused||!valid())return;const existing=pulses.get(pulseKey);if(existing)clearTimeout(existing.timer);const timer=setTimeout(()=>{pulses.delete(pulseKey);syncControls()},140);pulses.set(pulseKey,{axis,value,timer});syncControls()});
  }
  for(const [label,axis,value] of [['Forward','x',1],['Back','x',-1],['Left','z',-1],['Right','z',1],['Rise','y',1],['Fall','y',-1]] as const){const button=textButton(label,()=>{});bindHold(button,axis,value);phoneControls.append(button)}
  phoneControls.append(textButton('Reset',resetDrone),textButton('Camera',toggleCamera));
 
- const keys=new Set<string>();
  const keyboard=(event:KeyboardEvent):void=>{
   const key=event.key.toLowerCase();
-  if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright','r','escape'].includes(key)){event.preventDefault();keys.add(key)}
-  if(key==='r')resetDrone();if(key==='escape')toggleRun();
-  session.setThrottle('x',(keys.has('w')?1:0)+(keys.has('s')?-1:0));
-  session.setThrottle('y',(keys.has('arrowup')?1:0)+(keys.has('arrowdown')?-1:0));
-  session.setThrottle('z',(keys.has('d')?1:0)+(keys.has('a')?-1:0));
+  if(!['w','a','s','d','arrowup','arrowdown','r','escape'].includes(key))return;
+  event.preventDefault();if((key==='r'||key==='escape')&&event.repeat)return;
+  if(key==='r'){resetDrone();return}if(key==='escape'){toggleRun();return}
+  if(busy||paused)return;keys.add(key);syncControls();
  };
- const keyup=(event:KeyboardEvent):void=>{keys.delete(event.key.toLowerCase());session.setThrottle('x',(keys.has('w')?1:0)+(keys.has('s')?-1:0));session.setThrottle('y',(keys.has('arrowup')?1:0)+(keys.has('arrowdown')?-1:0));session.setThrottle('z',(keys.has('d')?1:0)+(keys.has('a')?-1:0))};
- canvas.addEventListener('keydown',keyboard);canvas.addEventListener('keyup',keyup);
+ const keyup=(event:KeyboardEvent):void=>{keys.delete(event.key.toLowerCase());syncControls()};
+ const canvasBlur=():void=>{keys.clear();syncControls()};
+ canvas.addEventListener('keydown',keyboard);canvas.addEventListener('keyup',keyup);canvas.addEventListener('blur',canvasBlur);
 
  function refresh():void{
   gateValue.textContent=`${session.gateIndex}/${session.course.gates.length}`;
@@ -216,7 +224,7 @@ export async function startView(host:Host,signal:AbortSignal):Promise<ViewHandle
   refresh();scene?.render();frame=requestAnimationFrame(tick);
  }
 
- function suspend():void{if(paused)return;paused=true;run.textContent='Run';announce('Flight paused when its window lost attention. Press Run when ready.')}
+ function suspend():void{clearControls();if(paused)return;paused=true;run.textContent='Run';announce('Flight paused when its window lost attention. Press Run when ready.')}
  const visibility=()=>{if(document.hidden)suspend()};window.addEventListener('blur',suspend);document.addEventListener('visibilitychange',visibility);
  const windowObserver=new MutationObserver(()=>{if(observedWindow&&(observedWindow.hidden||!observedWindow.classList.contains('focused')||observedWindow.classList.contains('rolled')))suspend()});
  const watchWindow=()=>{const target=element.closest<HTMLElement>('.window');if(target!==observedWindow){windowObserver.disconnect();observedWindow=target;if(target)windowObserver.observe(target,{attributes:true,attributeFilter:['class','hidden']})}if(target&&(target.hidden||!target.classList.contains('focused')||target.classList.contains('rolled')))suspend()};
@@ -235,7 +243,7 @@ export async function startView(host:Host,signal:AbortSignal):Promise<ViewHandle
   try{const selected=await host.storage.pickFolder({signal});if(selected===null||!valid())return;const context=await host.storage.mirrorFileContext();if(!valid()||!context.valid())return;path.value=context.path((selected==='/'?'':selected)+'/'+context.name(path.value.split('/').pop()||'Drone Circuit.game.json'))}catch(error){announce('Could not choose folder: '+(error instanceof Error?error.message:'unknown error'))}
  }
  async function save():Promise<void>{
-  if(busy||!valid())return;busy=true;paused=true;run.textContent='Run';
+  if(busy||!valid())return;busy=true;paused=true;clearControls();run.textContent='Run';
   const previousDirty=dirty,capturedRevision=revision,captured=encodeSave(session),requested=path.value;setDirty(true);let committed=false;
   try{
    const context=await host.storage.mirrorFileContext(),target=context.path(requested);
@@ -249,7 +257,7 @@ export async function startView(host:Host,signal:AbortSignal):Promise<ViewHandle
   }catch(error){announce('Could not save flight: '+(error instanceof Error?error.message:'unknown error'))}finally{if(!committed&&valid()&&revision===capturedRevision)setDirty(previousDirty);busy=false;refresh()}
  }
  async function open(selected?:string):Promise<void>{
-  if(busy||!valid())return;busy=true;paused=true;run.textContent='Run';
+  if(busy||!valid())return;busy=true;paused=true;clearControls();run.textContent='Run';
   const startingSession=session,startingRevision=revision,startingSnapshot=encodeSave(session);
   try{
    if(dirty&&!await host.ui.confirm?.('Open a saved flight and discard current progress?',{title:'Unsaved flight',confirmLabel:'Discard progress',cancelLabel:'Keep flight',danger:true,signal})){announce('Flight paused. Press Run to continue.');return}
@@ -280,8 +288,8 @@ export async function startView(host:Host,signal:AbortSignal):Promise<ViewHandle
   }catch(error){loading.textContent='Babylon.js could not start: '+(error instanceof Error?error.message:'unknown error');announce(loading.textContent)}
  });
  return{element,dispose(){
-  if(disposed)return;disposed=true;cancelAnimationFrame(frame);clearWatch();held.clear();keys.clear();windowObserver.disconnect();
-  canvas.removeEventListener('keydown',keyboard);canvas.removeEventListener('keyup',keyup);window.removeEventListener('blur',suspend);document.removeEventListener('visibilitychange',visibility);
+  if(disposed)return;disposed=true;cancelAnimationFrame(frame);clearWatch();clearControls();windowObserver.disconnect();
+  canvas.removeEventListener('keydown',keyboard);canvas.removeEventListener('keyup',keyup);canvas.removeEventListener('blur',canvasBlur);window.removeEventListener('blur',suspend);document.removeEventListener('visibilitychange',visibility);
   audio.dispose();scene?.dispose();engine?.dispose();scene=null;engine=null;camera=null;drone=null;ghost=null;element.replaceChildren();
  }};
 }

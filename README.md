@@ -36,3 +36,8 @@ node tests/drone-circuit-account.test.mjs
   evidence remain open.
 
 Engine version is pinned in `package-lock.json`: `@babylonjs/core` 9.33.1.
+
+The isolated `tests/drone-circuit-controls-review.test.mjs` checks overlapping
+emulated touches, release of keyboard throttle on focus loss, and account
+save/sync/reopen at desktop and phone sizes. Physical touch and complete course
+playthroughs remain untested.
