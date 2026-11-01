@@ -1,0 +1,121 @@
+{
+  "category": "03-babylon-xr-games",
+  "id": "drone-circuit",
+  "title": "Drone Circuit",
+  "genre": "Single-player 3D time trial",
+  "pitch": "Pilot a tiny drone through ordered gates while viewing it from a stable trackside position or desktop chase camera.",
+  "capabilities": [
+    "3D camera rigs and interpolated motion",
+    "Gate geometry and replay",
+    "Spatial audio and animated telemetry"
+  ],
+  "rules": [
+    "Bounded arcade flight controls; no aerodynamic claim. Gates must be crossed in sequence and correct direction.",
+    "A reset returns to the last valid gate with a time penalty. Best-run ghost is non-colliding recorded presentation.",
+    "XR baseline is trackside remote piloting; a camera strapped to the moving drone is not required."
+  ],
+  "content": "Three compact courses, training mode and bronze/silver/gold targets.",
+  "state": [
+    "course id",
+    "gate progression and flight state",
+    "elapsed simulation ticks and penalties",
+    "best-run samples",
+    "handling settings"
+  ],
+  "actions": [
+    {
+      "command": "fly",
+      "desktop": "WASD, rise/fall keys, mouse yaw optional",
+      "phone": "Two thumb controls with explicit rise/fall buttons",
+      "xr": "Controller stick or world-panel pads; target-ray selection for menus"
+    },
+    {
+      "command": "reset-drone",
+      "desktop": "R",
+      "phone": "Reset button",
+      "xr": "Trackside Reset control"
+    },
+    {
+      "command": "change-view",
+      "desktop": "Camera button",
+      "phone": "Camera button",
+      "xr": "Choose fixed spectator pedestal; no forced chase"
+    }
+  ],
+  "rive": {
+    "asset": "drone-telemetry.riv",
+    "role": "Telemetry card and animated mechanic, as a spatial panel in XR.",
+    "properties": {
+      "speed": "number 0..1",
+      "gate": "integer",
+      "delta": "number"
+    },
+    "events": [
+      "gateClear",
+      "collision",
+      "medal"
+    ],
+    "states": [
+      "ready",
+      "flight",
+      "warning",
+      "result"
+    ],
+    "artboard": "Main",
+    "stateMachine": "Presentation",
+    "assetStatus": "to_author"
+  },
+  "polish": [
+    "Large distant gate silhouettes",
+    "Ghost reduced opacity with opt-out",
+    "Stable XR horizon and selectable spectator positions"
+  ],
+  "tests": [
+    "Passing behind/out of order cannot score a gate.",
+    "Reset applies one penalty.",
+    "Phone simultaneous controls retain pointer ownership.",
+    "Ghost samples use simulation ticks.",
+    "XR entry preserves drone velocity but starts paused until Resume.",
+    "Large frame stall clamps catch-up and reports pause rather than teleporting through course."
+  ],
+  "loop": [
+    "sample flight intent and clamp axes",
+    "advance game kinematics at fixed tick",
+    "sweep movement against gates and simple obstacles",
+    "update penalties/ghost trace",
+    "project drone animation, audio and telemetry"
+  ],
+  "save": "Exact logical flight state; loading resumes paused at saved pose. Persistent ghosts capped by duration/sample count.",
+  "wave": 2,
+  "xr_mode": "seated",
+  "xr_presentation": "Immersive VR track viewed from a stationary spectator position with remote drone control; optional AR mini-course is a later explicit extension.",
+  "comfort": "No compulsory first-person flight. Spectator relocation uses instant teleport/fade, never a forced camera ride.",
+  "specVersion": 1,
+  "status": "planned",
+  "implementation": "not_started",
+  "runtimeTests": "not_run",
+  "engine": "Babylon.js",
+  "singlePlayer": true,
+  "phoneRequired": true,
+  "mountContract": {
+    "export": "mount",
+    "synchronous": true,
+    "returns": [
+      "element",
+      "dispose"
+    ],
+    "productionEntry": "index.mjs",
+    "suppliedEntry": "index.pseudo.mjs"
+  },
+  "xrRequired": true,
+  "riveRequired": true,
+  "riveAssetIncluded": false,
+  "documentKind": "Exact logical flight state; loading resumes paused at saved pose. Persistent ghosts capped by duration/sample count.",
+  "sources": [
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "S13"
+  ]
+}
