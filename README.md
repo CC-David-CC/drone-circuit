@@ -41,3 +41,7 @@ The isolated `tests/drone-circuit-controls-review.test.mjs` checks overlapping
 emulated touches, release of keyboard throttle on focus loss, and account
 save/sync/reopen at desktop and phone sizes. Physical touch and complete course
 playthroughs remain untested.
+
+## Design requirements
+
+The original [design brief, controls, save rules, artwork and acceptance plans](design/README.md) are retained as reference. They describe targets; the implementation and qualification status above takes precedence.
