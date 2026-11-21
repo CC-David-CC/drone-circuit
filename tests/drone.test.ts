@@ -1,11 +1,11 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "./test-shim.ts";
 import {
   DroneCircuitSession,
   RESET_PENALTY_S,
   decodeSave,
   encodeSave,
   sessionFromSave,
-} from "../src/model/drone.js";
+} from "../src/model/drone.ts";
 
 describe("DroneCircuitSession rules", () => {
   it("gates only score in sequence and with forward direction", () => {

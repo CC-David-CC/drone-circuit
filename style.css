@@ -26,3 +26,62 @@
   .drone-stage-wrap { min-height: 300px; height: 42vh; }
   .drone-app button,.drone-app select,.drone-app input { min-height: 44px; }
 }
+
+
+/* Tier 1: Simplified Phone Display (< 768px) */
+@media (max-width: 768px) {
+  .drone-circuit-app {
+    padding: 6px;
+    gap: 6px;
+  }
+  .drone-circuit-layout {
+    flex-direction: column;
+  }
+  .drone-stage-wrap {
+    min-height: 280px;
+    flex-basis: auto;
+  }
+  .drone-side {
+    min-width: 100%;
+    width: 100%;
+  }
+  .drone-toolbar button,
+  .drone-toolbar select,
+  .drone-controls button,
+  .drone-save-fields button {
+    min-height: 48px;
+  }
+}
+
+/* Tier 2: Full 1080p Desktop Display (1024px to 2559px) */
+@media (min-width: 1024px) and (max-width: 2559px) {
+  .drone-stage-wrap {
+    min-height: 520px;
+  }
+  .drone-side {
+    min-width: 300px;
+  }
+}
+
+/* Tier 3: Complete 4K UHD Display (>= 2560px) */
+@media (min-width: 2560px) {
+  .drone-circuit-app {
+    padding: 20px;
+    gap: 16px;
+    font-size: 1.25rem;
+  }
+  .drone-stage-wrap {
+    min-height: 840px;
+  }
+  .drone-side {
+    min-width: 440px;
+  }
+  .drone-toolbar button,
+  .drone-toolbar select,
+  .drone-controls button,
+  .drone-save-fields button {
+    min-height: 54px;
+    font-size: 1.2rem;
+    padding: 10px 18px;
+  }
+}

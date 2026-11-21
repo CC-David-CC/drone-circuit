@@ -279,6 +279,12 @@ export async function startView(host:Host,signal:AbortSignal):Promise<ViewHandle
   if(disposed)return;
   try{
    engine=new Engine(canvas,true,{preserveDrawingBuffer:false,stencil:true},true);
+   if (typeof ResizeObserver !== 'undefined') {
+     const resizeObserver = new ResizeObserver(() => {
+       engine?.resize();
+     });
+     resizeObserver.observe(stageWrap);
+   }
    scene=new Scene(engine);const cameraLight=new HemisphericLight('light',new Vector3(0,1,0),scene);cameraLight.intensity=.9;
    camera=new ArcRotateCamera('camera',-Math.PI/2,1.4,52,new Vector3(30,0,0),scene);camera.attachControl(canvas,false);camera.lowerRadiusLimit=4;camera.upperRadiusLimit=90;
    buildScene();refresh();frame=requestAnimationFrame(tick);

@@ -1,4 +1,4 @@
-import type {Host} from './view/run.js';
+import type {Host} from './view/run.ts';
 
 export interface MountResult {
   element: HTMLElement;
@@ -15,7 +15,7 @@ export function mount(value: unknown, options: {autostart?: boolean} = {}): Moun
   if(options.autostart!==false)queueMicrotask(()=>{
     void Promise.resolve().then(async()=>{
       if(disposed||controller.signal.aborted)return;
-      const {startView}=await import('./view/run.js');
+      const {startView}=await import('./view/run.ts');
       if(disposed||controller.signal.aborted)return;
       const candidate=await startView(host,controller.signal);
       if(disposed){candidate.dispose();return}
